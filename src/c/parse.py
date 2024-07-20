@@ -1,7 +1,8 @@
 """Recursive descent parser for C - converts source code to AST representation"""
 
-from lex import Token, TokenType
-from syntax_tree import AST
+import itertools
+from c.lex import Token, TokenType
+from c.syntax_tree import AST
 
 """
 Grammar
@@ -9,7 +10,8 @@ Grammar
 <program> ::= <function>
 <function> ::= "int" <identifier> "(" "void" ")" "{" <statement> "}"
 <statement> ::= "return" <exp> ";"
-<exp> ::= <int>
+<exp> ::= <int> | <unop> <exp> | "(" <exp> ")"
+<unop> ::= "-" | "~"
 <identifier> ::= ? An identifier token ?
 <int> ::= ? A constant token ?
 """
@@ -32,6 +34,10 @@ class Parser:
         if (not actual) or (actual.tok_type != expected_type):
             raise BadSyntax(f"Expected type {expected_type} but got {actual}")
         return actual
+    
+    def peek(toks):
+        t = next(toks)
+        return t, itertools.chain((t,), toks)
     
     def expect_end(toks):
         try:
@@ -63,8 +69,26 @@ class Parser:
         return AST.Return(return_exp)
     
     def exp(toks):
-        constant_tok = Parser.expect_type(TokenType.CONSTANT, toks)
-        return AST.Constant(constant_tok.value)
+        tok, toks = Parser.peek(toks)
+        if tok.tok_type == TokenType.LPAREN:
+            Parser.expect_type(TokenType.LPAREN, toks)
+            exp = Parser.exp(toks)
+            Parser.expect_type(TokenType.RPAREN, toks)
+            return exp
+        elif tok.tok_type in (TokenType.TILDE, TokenType.HYPHEN):
+            unary_operator =  Parser.unop(toks)
+            exp = Parser.exp(toks)
+            return AST.UnaryOperation(unary_operator, exp)
+        else:
+            constant_tok = Parser.expect_type(TokenType.CONSTANT, toks)
+            return AST.Constant(constant_tok.value)
+    
+    def unop(toks):
+        op = next(toks)
+        if op.tok_type == TokenType.TILDE:
+            return AST.Complement()
+        elif op.tok_type == TokenType.HYPHEN:
+            return AST.Negation()
 
 
 def parse(toks):

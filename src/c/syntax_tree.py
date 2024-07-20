@@ -1,4 +1,11 @@
-"""AST definitions and parsing routines"""
+"""AST definitions and parsing routines
+
+program = Program(function_definition)
+function_definition = Function(identifier name, statement body)
+statement = Return(exp)
+exp = Constant(int) | Unary(unary_operator, exp)
+unary_operator = Complement | Negate
+"""
 
 class AST:
 
@@ -45,6 +52,33 @@ class AST:
             
         def __eq__(self, other) -> bool:
             return isinstance(other, AST.Constant) and self.value == other.value
+        
+    class UnaryOperation(Exp):
+        def __init__(self, unary_operator, exp) -> None:
+            super().__init__()
+            self.unary_operator = unary_operator
+            self.exp = exp
+            
+        def __eq__(self, other) -> bool:
+            return isinstance(other, AST.UnaryOperation) and self.unary_operator == other.unary_operator and self.exp == other.exp
+        
+    # Operators
+    class Operator:
+        pass
+    
+    class Complement(Operator):
+        def __init__(self) -> None:
+            super().__init__()
+            
+        def __eq__(self, other) -> bool:
+            return isinstance(other, AST.Complement)
+    
+    class Negation(Operator):
+        def __init__(self) -> None:
+            super().__init__()
+            
+        def __eq__(self, other) -> bool:
+            return isinstance(other, AST.Negation)
         
  # type: ignore
  

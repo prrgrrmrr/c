@@ -1,4 +1,4 @@
-"""Regular expression and code to fetch next token from input"""
+"""Regular expressions and code to fetch next token from input"""
 
 from enum import Enum
 import re
@@ -16,6 +16,9 @@ class TokenType(Enum):
     RBRACE = 60
     SEMICOLON = 70
     CONSTANT = 80
+    HYPHEN = 90
+    DECREMENT = 100
+    TILDE = 110
 
 
 class Token:
@@ -53,6 +56,9 @@ TOKEN_TYPES = (
     ("\\{", TokenType.LBRACE),
     ("\\}", TokenType.RBRACE),
     (";", TokenType.SEMICOLON),
+    ("-", TokenType.HYPHEN),
+    ("--", TokenType.DECREMENT),
+    ("~", TokenType.TILDE),
     # Constants
     ("[0-9]+\\b", TokenType.CONSTANT),
 )
