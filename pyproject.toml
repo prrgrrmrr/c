@@ -9,4 +9,7 @@ readme = "README.md"
 license = {file = "LICENSE"}
 
 [project.optional-dependencies]
-dev = ["pyinstaller==6.9.0"]
+dev = [
+    "pyinstaller==6.9.0",
+    "ipykernel==6.29.5"
+]

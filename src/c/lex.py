@@ -19,6 +19,10 @@ class TokenType(Enum):
     HYPHEN = 90
     DECREMENT = 100
     TILDE = 110
+    PLUS = 120
+    ASTERISK = 130
+    SLASH = 140
+    PERCENT = 150
 
 
 class Token:
@@ -59,6 +63,10 @@ TOKEN_TYPES = (
     ("-", TokenType.HYPHEN),
     ("--", TokenType.DECREMENT),
     ("~", TokenType.TILDE),
+    ("\\+", TokenType.PLUS),
+    ("\\*", TokenType.ASTERISK),
+    ("/", TokenType.SLASH),
+    ("%", TokenType.PERCENT),
     # Constants
     ("[0-9]+\\b", TokenType.CONSTANT),
 )
@@ -72,8 +80,10 @@ for token_type in TOKEN_TYPES:
         TOKENIZER_RE = f"{TOKENIZER_RE}|({exp})"
 TOKENIZER_P = re.compile(TOKENIZER_RE)
 
+
 class UnknownToken(Exception):
     pass
+
 
 def tokens(s: str):
     """Generates list of tokens"""

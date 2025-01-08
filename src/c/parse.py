@@ -1,6 +1,7 @@
 """Recursive descent parser for C - converts source code to AST representation"""
 
 import itertools
+from collections import defaultdict
 from c.lex import Token, TokenType
 from c.syntax_tree import AST
 
@@ -10,8 +11,10 @@ Grammar
 <program> ::= <function>
 <function> ::= "int" <identifier> "(" "void" ")" "{" <statement> "}"
 <statement> ::= "return" <exp> ";"
-<exp> ::= <int> | <unop> <exp> | "(" <exp> ")"
+<exp> ::= <factor> | <exp> <binop> <exp>
+<factor> ::= <int> | <unop> <factor> | "(" <exp> ")"
 <unop> ::= "-" | "~"
+<binop> ::= "-" | "+" | "*" | "/" | "%"
 <identifier> ::= ? An identifier token ?
 <int> ::= ? A constant token ?
 """
@@ -23,75 +26,114 @@ class BadSyntax(Exception):
 
 class Parser:
     
-    def expect_token(expected, toks):
-        actual = next(toks)
+    # Stream of tokens
+    toks = None
+    
+    # Precedence levels of binary operators
+    precedence = defaultdict(lambda: -1)
+    precedence[TokenType.PLUS] = 45
+    precedence[TokenType.HYPHEN] = 45
+    precedence[TokenType.ASTERISK] = 50
+    precedence[TokenType.SLASH] = 50
+    precedence[TokenType.PERCENT] = 50
+    
+    def expect_token(expected):
+        actual = next(Parser.toks)
         if (not actual) or (actual != expected):
             raise BadSyntax(f"Expected {expected} but got {actual}")
         return actual
     
-    def expect_type(expected_type, toks):
-        actual = next(toks)
+    def expect_type(expected_type):
+        actual = next(Parser.toks)
         if (not actual) or (actual.tok_type != expected_type):
             raise BadSyntax(f"Expected type {expected_type} but got {actual}")
         return actual
     
-    def peek(toks):
-        t = next(toks)
-        return t, itertools.chain((t,), toks)
+    def peek():
+        t = next(Parser.toks)
+        Parser.toks = itertools.chain((t,), Parser.toks)
+        return t
     
-    def expect_end(toks):
+    def expect_end():
         try:
-            actual = next(toks)
+            actual = next(Parser.toks)
             raise BadSyntax(f"Expected end of input but got {actual}")
         except StopIteration:
             pass
         
-    def program(toks):
-        func = Parser.function(toks)
-        Parser.expect_end(toks)
+    def program():
+        func = Parser.function()
+        Parser.expect_end()
         return AST.Program(func)
     
-    def function(toks):
-        Parser.expect_token(Token(TokenType.KEYWORD, "int"), toks)
-        name_tok = Parser.expect_type(TokenType.IDENTIFIER, toks)
-        Parser.expect_token(Token(TokenType.LPAREN, "("), toks)
-        Parser.expect_token(Token(TokenType.KEYWORD, "void"), toks)
-        Parser.expect_token(Token(TokenType.RPAREN, ")"), toks)
-        Parser.expect_token(Token(TokenType.LBRACE, "{"), toks)
-        body = Parser.statement(toks)
-        Parser.expect_token(Token(TokenType.RBRACE, "}"), toks)
+    def function():
+        Parser.expect_token(Token(TokenType.KEYWORD, "int"))
+        name_tok = Parser.expect_type(TokenType.IDENTIFIER)
+        Parser.expect_token(Token(TokenType.LPAREN, "("))
+        Parser.expect_token(Token(TokenType.KEYWORD, "void"))
+        Parser.expect_token(Token(TokenType.RPAREN, ")"))
+        Parser.expect_token(Token(TokenType.LBRACE, "{"))
+        body = Parser.statement()
+        Parser.expect_token(Token(TokenType.RBRACE, "}"))
         return AST.Function(name_tok.value, body)
     
-    def statement(toks):
-        Parser.expect_token(Token(TokenType.KEYWORD, "return"), toks)
-        return_exp = Parser.exp(toks)
-        Parser.expect_token(Token(TokenType.SEMICOLON, ";"), toks)
+    def statement():
+        Parser.expect_token(Token(TokenType.KEYWORD, "return"))
+        return_exp = Parser.exp()
+        Parser.expect_token(Token(TokenType.SEMICOLON, ";"))
         return AST.Return(return_exp)
     
-    def exp(toks):
-        tok, toks = Parser.peek(toks)
+    def exp(min_prec = 0):
+        # print(f"min prec {min_prec}")
+        left = Parser.factor()
+        next_tok = Parser.peek()
+        # print(f"next tok {next_tok}")
+        while Parser.precedence[next_tok.tok_type] >= min_prec:
+            binary_operator = Parser.binop()
+            right = Parser.exp(Parser.precedence[next_tok.tok_type] + 1)
+            left = AST.BinaryOperation(binary_operator, left, right)
+            next_tok = Parser.peek()
+            # print(f"next tok {next_tok}")
+        return left
+    
+    def factor():
+        tok = Parser.peek()
         if tok.tok_type == TokenType.LPAREN:
-            Parser.expect_type(TokenType.LPAREN, toks)
-            exp = Parser.exp(toks)
-            Parser.expect_type(TokenType.RPAREN, toks)
+            Parser.expect_type(TokenType.LPAREN)
+            exp = Parser.exp()
+            Parser.expect_type(TokenType.RPAREN)
             return exp
         elif tok.tok_type in (TokenType.TILDE, TokenType.HYPHEN):
-            unary_operator =  Parser.unop(toks)
-            exp = Parser.exp(toks)
+            unary_operator =  Parser.unop()
+            exp = Parser.factor()
             return AST.UnaryOperation(unary_operator, exp)
         else:
-            constant_tok = Parser.expect_type(TokenType.CONSTANT, toks)
+            constant_tok = Parser.expect_type(TokenType.CONSTANT)
             return AST.Constant(constant_tok.value)
     
-    def unop(toks):
-        op = next(toks)
+    def unop():
+        op = next(Parser.toks)
         if op.tok_type == TokenType.TILDE:
             return AST.Complement()
         elif op.tok_type == TokenType.HYPHEN:
             return AST.Negation()
+        
+    def binop():
+        op = next(Parser.toks)
+        if op.tok_type == TokenType.HYPHEN:
+            return AST.Subtraction()
+        elif op.tok_type == TokenType.PLUS:
+            return AST.Addition()
+        elif op.tok_type == TokenType.ASTERISK:
+            return AST.Multiplication()
+        elif op.tok_type == TokenType.SLASH:
+            return AST.Division()
+        elif op.tok_type == TokenType.PERCENT:
+            return AST.Remainder()
 
 
 def parse(toks):
-    return Parser.program(toks)
+    Parser.toks = toks
+    return Parser.program()
 
  # type: ignore

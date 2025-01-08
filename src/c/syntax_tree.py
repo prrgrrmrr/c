@@ -3,8 +3,9 @@
 program = Program(function_definition)
 function_definition = Function(identifier name, statement body)
 statement = Return(exp)
-exp = Constant(int) | Unary(unary_operator, exp)
+exp = Constant(int) | Unary(unary_operator, exp) | Binary(binary_operator, exp, exp)
 unary_operator = Complement | Negate
+binary_operator = Add | Subtract | Multiply | Divide | Remainder
 """
 
 class AST:
@@ -16,7 +17,6 @@ class AST:
         def __eq__(self, other) -> bool:
             return isinstance(other, AST.Program) and self.function_definition == other.function_definition
             
-
     class Function:
         def __init__(self, name, body):
             self.name = name
@@ -25,11 +25,9 @@ class AST:
         def __eq__(self, other) -> bool:
             return isinstance(other, AST.Function) and self.name == other.name and self.body == other.body
 
-
     # Statements
     class Statement:
         pass
-
 
     class Return(Statement):
         def __init__(self, exp) -> None:
@@ -39,11 +37,9 @@ class AST:
         def __eq__(self, other) -> bool:
             return isinstance(other, AST.Return) and self.exp == other.exp
 
-
     # Expressions
     class Exp:
         pass
-
 
     class Constant(Exp):
         def __init__(self, value) -> None:
@@ -62,23 +58,72 @@ class AST:
         def __eq__(self, other) -> bool:
             return isinstance(other, AST.UnaryOperation) and self.unary_operator == other.unary_operator and self.exp == other.exp
         
-    # Operators
-    class Operator:
+    class BinaryOperation(Exp):
+        def __init__(self, binary_operator, lhs, rhs) -> None:
+            super().__init__()
+            self.binary_operator = binary_operator
+            self.lhs = lhs
+            self.rhs = rhs
+            
+        def __eq__(self, other) -> bool:
+            return isinstance(other, AST.BinaryOperation) and self.binary_operator == other.binary_operator and self.lhs == other.lhs and self.rhs == other.rhs
+        
+    # Unary operators
+    class UnaryOperator:
         pass
     
-    class Complement(Operator):
+    class Complement(UnaryOperator):
         def __init__(self) -> None:
             super().__init__()
             
         def __eq__(self, other) -> bool:
             return isinstance(other, AST.Complement)
     
-    class Negation(Operator):
+    class Negation(UnaryOperator):
         def __init__(self) -> None:
             super().__init__()
             
         def __eq__(self, other) -> bool:
             return isinstance(other, AST.Negation)
+        
+    # Binary operators
+    class BinaryOperator:
+        pass
+    
+    class Subtraction(BinaryOperator):
+        def __init__(self) -> None:
+            super().__init__()
+            
+        def __eq__(self, other) -> bool:
+            return isinstance(other, AST.Subtraction)
+        
+    class Addition(BinaryOperator):
+        def __init__(self) -> None:
+            super().__init__()
+            
+        def __eq__(self, other) -> bool:
+            return isinstance(other, AST.Addition)
+        
+    class Multiplication(BinaryOperator):
+        def __init__(self) -> None:
+            super().__init__()
+            
+        def __eq__(self, other) -> bool:
+            return isinstance(other, AST.Multiplication)
+        
+    class Division(BinaryOperator):
+        def __init__(self) -> None:
+            super().__init__()
+            
+        def __eq__(self, other) -> bool:
+            return isinstance(other, AST.Division)
+        
+    class Remainder(BinaryOperator):
+        def __init__(self) -> None:
+            super().__init__()
+            
+        def __eq__(self, other) -> bool:
+            return isinstance(other, AST.Remainder)
         
  # type: ignore
  

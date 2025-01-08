@@ -41,8 +41,8 @@ def compile(args):
     elif "--lex" in args:
         # Stop after tokenization
         toks = tokens(src_string)
-        for tok in toks:
-            print(tok)
+        # for tok in toks:
+        #     print(tok)
     else:
         # No args, assume user wants to emit assembly instructions to file
         toks = tokens(src_string)

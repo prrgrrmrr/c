@@ -19,6 +19,25 @@ def emit(assembly_ast, stream):
         stream.write(" ")
         emit(assembly_ast.operand, stream)
         stream.write("\n")
+    elif isinstance(assembly_ast, ASSEMBLY_AST.BinaryOperation):
+        emit(assembly_ast.binary_operator, stream)
+        stream.write(" ")
+        emit(assembly_ast.src, stream)
+        stream.write(", ")
+        emit(assembly_ast.dst, stream)
+        stream.write("\n")
+    elif isinstance(assembly_ast, ASSEMBLY_AST.Idiv):
+        stream.write("idivl ")
+        emit(assembly_ast.operand, stream)
+        stream.write("\n")
+    elif isinstance(assembly_ast, ASSEMBLY_AST.Cdq):
+        stream.write("cdq\n")
+    elif isinstance(assembly_ast, ASSEMBLY_AST.Add):
+        stream.write("addl")
+    elif isinstance(assembly_ast, ASSEMBLY_AST.Sub):
+        stream.write("subl")
+    elif isinstance(assembly_ast, ASSEMBLY_AST.Mult):
+        stream.write("imull")
     elif isinstance(assembly_ast, ASSEMBLY_AST.Mov):
         stream.write("movl ")
         emit(assembly_ast.src, stream)
@@ -33,8 +52,12 @@ def emit(assembly_ast, stream):
         emit(assembly_ast.reg, stream)
     elif isinstance(assembly_ast, ASSEMBLY_AST.AX):
         stream.write("%eax")
+    elif isinstance(assembly_ast, ASSEMBLY_AST.DX):
+        stream.write("%edx")
     elif isinstance(assembly_ast, ASSEMBLY_AST.R10):
         stream.write("%r10d")
+    elif isinstance(assembly_ast, ASSEMBLY_AST.R11):
+        stream.write("%r11d")
     elif isinstance(assembly_ast, ASSEMBLY_AST.Imm):
         stream.write(f"${assembly_ast.value}")
     elif isinstance(assembly_ast, ASSEMBLY_AST.StackOffset):
