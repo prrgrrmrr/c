@@ -8,11 +8,12 @@ from c.codegen import asmgen
 from c.emit import emit
 from c.utils import tmp_unique_name
 
+
 def compile(args):
     output = None
     input_path = args[0]
     var_name_generator = tmp_unique_name()
-    
+
     with open(input_path, "r") as input_file:
         src_string = input_file.read()
     if "-S" in args:

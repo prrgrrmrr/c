@@ -23,6 +23,15 @@ class TokenType(Enum):
     ASTERISK = 130
     SLASH = 140
     PERCENT = 150
+    EXCLAMATION_POINT = 160
+    TWO_AMPERSANDS = 170
+    TWO_VERTICAL_BARS = 180
+    TWO_EQUAL_SIGNS = 190
+    EXCLAMATION_POINT_EQUAL_SIGN = 200
+    LESS_THAN = 210
+    GREATER_THAN = 220
+    LESS_THAN_OR_EQUAL = 230
+    GREATER_THAN_OR_EQUAL = 240
 
 
 class Token:
@@ -60,8 +69,8 @@ TOKEN_TYPES = (
     ("\\{", TokenType.LBRACE),
     ("\\}", TokenType.RBRACE),
     (";", TokenType.SEMICOLON),
-    ("-", TokenType.HYPHEN),
     ("--", TokenType.DECREMENT),
+    ("-", TokenType.HYPHEN),
     ("~", TokenType.TILDE),
     ("\\+", TokenType.PLUS),
     ("\\*", TokenType.ASTERISK),
@@ -69,6 +78,16 @@ TOKEN_TYPES = (
     ("%", TokenType.PERCENT),
     # Constants
     ("[0-9]+\\b", TokenType.CONSTANT),
+    # Logical and relational operators
+    ("&&", TokenType.TWO_AMPERSANDS),
+    ("\\|\\|", TokenType.TWO_VERTICAL_BARS),
+    ("==", TokenType.TWO_EQUAL_SIGNS),
+    ("!=", TokenType.EXCLAMATION_POINT_EQUAL_SIGN),
+    ("!", TokenType.EXCLAMATION_POINT),
+    ("<=", TokenType.LESS_THAN_OR_EQUAL),
+    (">=", TokenType.GREATER_THAN_OR_EQUAL),
+    ("<", TokenType.LESS_THAN),
+    (">", TokenType.GREATER_THAN),
 )
 
 TOKENIZER_RE = ""
