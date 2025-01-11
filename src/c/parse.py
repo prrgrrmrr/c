@@ -6,13 +6,15 @@ from c.lex import Token, TokenType
 from c.syntax_tree import AST
 
 """
-Grammar
+Grammar (EBNF)
 
 <program> ::= <function>
-<function> ::= "int" <identifier> "(" "void" ")" "{" <statement> "}"
-<statement> ::= "return" <exp> ";"
+<function> ::= "int" <identifier> "(" "void" ")" "{" { <block-item> } "}"
+<block-item> ::= <statement> | <declaration>
+<declaration> ::= "int" <identifier> [ "=" <exp> ] ";"
+<statement> ::= "return" <exp> ";" | <exp> ";" | ";"
 <exp> ::= <factor> | <exp> <binop> <exp>
-<factor> ::= <int> | <unop> <factor> | "(" <exp> ")"
+<factor> ::= <int> | <identifier> | <unop> <factor> | "(" <exp> ")"
 <unop> ::= "-" | "~" | "!"
 <binop> ::= "-" | "+" | "*" | "/" | "%" | "&&" | "||" | "==" | "!=" | "<" | "<=" | ">" | ">="
 <identifier> ::= ? An identifier token ?
@@ -44,6 +46,7 @@ class Parser:
     precedence[TokenType.EXCLAMATION_POINT_EQUAL_SIGN] = 30
     precedence[TokenType.TWO_AMPERSANDS] = 10
     precedence[TokenType.TWO_VERTICAL_BARS] = 5
+    precedence[TokenType.EQUAL_SIGN] = 1
 
     @staticmethod
     def expect_token(expected):
@@ -87,16 +90,49 @@ class Parser:
         Parser.expect_token(Token(TokenType.KEYWORD, "void"))
         Parser.expect_token(Token(TokenType.RPAREN, ")"))
         Parser.expect_token(Token(TokenType.LBRACE, "{"))
-        body = Parser.statement()
+        body = []
+        while Parser.peek() != Token(TokenType.RBRACE, "}"):
+            body.append(Parser.block_item())
         Parser.expect_token(Token(TokenType.RBRACE, "}"))
         return AST.Function(name_tok.value, body)
 
     @staticmethod
-    def statement():
-        Parser.expect_token(Token(TokenType.KEYWORD, "return"))
-        return_exp = Parser.exp()
+    def block_item():
+        if Parser.peek() == Token(TokenType.KEYWORD, "int"):
+            return AST.D(Parser.declaration())
+        else:
+            return AST.S(Parser.statement())
+    
+    @staticmethod
+    def declaration():
+        Parser.expect_token(Token(TokenType.KEYWORD, "int"))
+        identifier = Parser.expect_type(TokenType.IDENTIFIER)
+        initializer = None
+        if Parser.peek() == Token(TokenType.EQUAL_SIGN, "="):
+            Parser.expect_token(Token(TokenType.EQUAL_SIGN, "="))
+            initializer = Parser.exp()
         Parser.expect_token(Token(TokenType.SEMICOLON, ";"))
-        return AST.Return(return_exp)
+        return AST.Declaration(identifier, initializer)
+        
+    @staticmethod
+    def statement():
+        t = Parser.peek()
+        if t == Token(TokenType.KEYWORD, "return"):
+            # Return statement
+            Parser.expect_token(Token(TokenType.KEYWORD, "return"))
+            return_exp = Parser.exp()
+            Parser.expect_token(Token(TokenType.SEMICOLON, ";"))
+            return AST.Return(return_exp)
+        elif t != Token(TokenType.SEMICOLON, ";"):
+            # Expression statement
+            exp = Parser.exp()
+            Parser.expect_token(Token(TokenType.SEMICOLON, ";"))
+            return AST.Expression(exp)
+        else:
+            # Null statement
+            Parser.expect_token(Token(TokenType.SEMICOLON, ";"))
+            return AST.Null()
+        
 
     @staticmethod
     def exp(min_prec=0):
@@ -105,9 +141,14 @@ class Parser:
         next_tok = Parser.peek()
         # print(f"next tok {next_tok}")
         while Parser.precedence[next_tok.tok_type] >= min_prec:
-            binary_operator = Parser.binop()
-            right = Parser.exp(Parser.precedence[next_tok.tok_type] + 1)
-            left = AST.BinaryOperation(binary_operator, left, right)
+            if next_tok == Token(TokenType.EQUAL_SIGN, "="):
+                Parser.expect_token(Token(TokenType.EQUAL_SIGN, "="))
+                right = Parser.exp(Parser.precedence[next_tok.tok_type])
+                left = AST.Assignment(left, right)
+            else:
+                binary_operator = Parser.binop()
+                right = Parser.exp(Parser.precedence[next_tok.tok_type] + 1)
+                left = AST.BinaryOperation(binary_operator, left, right)
             next_tok = Parser.peek()
             # print(f"next tok {next_tok}")
         return left
@@ -128,6 +169,9 @@ class Parser:
             unary_operator = Parser.unop()
             exp = Parser.factor()
             return AST.UnaryOperation(unary_operator, exp)
+        elif tok.tok_type == TokenType.IDENTIFIER:
+            identifier_tok = Parser.expect_type(TokenType.IDENTIFIER)
+            return AST.Var(identifier_tok)
         else:
             constant_tok = Parser.expect_type(TokenType.CONSTANT)
             return AST.Constant(constant_tok.value)

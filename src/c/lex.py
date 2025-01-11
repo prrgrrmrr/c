@@ -32,6 +32,7 @@ class TokenType(Enum):
     GREATER_THAN = 220
     LESS_THAN_OR_EQUAL = 230
     GREATER_THAN_OR_EQUAL = 240
+    EQUAL_SIGN = 250
 
 
 class Token:
@@ -88,6 +89,7 @@ TOKEN_TYPES = (
     (">=", TokenType.GREATER_THAN_OR_EQUAL),
     ("<", TokenType.LESS_THAN),
     (">", TokenType.GREATER_THAN),
+    ("=", TokenType.EQUAL_SIGN),
 )
 
 TOKENIZER_RE = ""

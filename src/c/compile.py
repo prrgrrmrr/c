@@ -42,8 +42,10 @@ def compile(args):
     elif "--lex" in args:
         # Stop after tokenization
         toks = tokens(src_string)
-        # for tok in toks:
-        #     print(tok)
+        # Note, tokens is a generator, so we need to scan through generated tokens to raise lexing errors
+        # Otherwise, errors in invalid programs will go unseen
+        for _ in toks:
+            pass
     else:
         # No args, assume user wants to emit assembly instructions to file
         toks = tokens(src_string)

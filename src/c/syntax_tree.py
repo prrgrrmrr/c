@@ -1,11 +1,13 @@
 """AST definitions and parsing routines
 
 program = Program(function_definition)
-function_definition = Function(identifier name, statement body)
-statement = Return(exp)
-exp = Constant(int) | Unary(unary_operator, exp) | Binary(binary_operator, exp, exp)
+function_definition = Function(identifier name, block_item* body)
+block_item = S(statement) | D(declaration)
+statement = Return(exp) | Expression(exp) | Null
+exp = Constant(int) | Var(identifier) | Unary(unary_operator, exp) | Binary(binary_operator, exp, exp) | Assignment(exp, exp)
 unary_operator = Complement | Negate | Not
 binary_operator = Add | Subtract | Multiply | Divide | Remainder | And | Or | Equal | NotEqual | LessThan | LessOrEqual | GreaterThan | GreaterOrEqual
+declaration = Declaration(identifier name, exp? init)
 """
 
 
@@ -32,6 +34,35 @@ class AST:
                 and self.name == other.name
                 and self.body == other.body
             )
+            
+    # Block items
+    class BlockItem:
+        pass
+    
+    class S(BlockItem):
+        def __init__(self, statement):
+            super().__init__()
+            self.statement = statement
+            
+        def __eq__(self, other) -> bool:
+            return isinstance(other, AST.S) and self.statement == other.statement
+        
+    class D(BlockItem):
+        def __init__(self, declaration):
+            super().__init__()
+            self.declaration = declaration
+            
+        def __eq__(self, other) -> bool:
+            return isinstance(other, AST.D) and self.declaration == other.declaration
+        
+    # Declarations - this is not a statement but a way to tell the compiler a variable exists
+    class Declaration:
+        def __init__(self, name, initializer) -> None:
+            self.name = name
+            self.initializer = initializer
+            
+        def __eq__(self, other) -> bool:
+            return isinstance(other, AST.Declaration) and self.name == other.name and self.initializer == other.initializer
 
     # Statements
     class Statement:
@@ -44,6 +75,21 @@ class AST:
 
         def __eq__(self, other) -> bool:
             return isinstance(other, AST.Return) and self.exp == other.exp
+        
+    class Expression(Statement):
+        def __init__(self, exp) -> None:
+            super().__init__()
+            self.exp = exp
+
+        def __eq__(self, other) -> bool:
+            return isinstance(other, AST.Expression) and self.exp == other.exp
+        
+    class Null(Statement):
+        def __init__(self) -> None:
+            super().__init__()
+
+        def __eq__(self, other) -> bool:
+            return isinstance(other, AST.Null)
 
     # Expressions
     class Exp:
@@ -56,6 +102,23 @@ class AST:
 
         def __eq__(self, other) -> bool:
             return isinstance(other, AST.Constant) and self.value == other.value
+        
+    class Var(Exp):
+        def __init__(self, identifier) -> None:
+            super().__init__()
+            self.identifier = identifier
+
+        def __eq__(self, other) -> bool:
+            return isinstance(other, AST.Var) and self.identifier == other.identifier
+        
+    class Assignment(Exp):
+        def __init__(self, lhs, rhs) -> None:
+            super().__init__()
+            self.lhs = lhs
+            self.rhs = rhs
+
+        def __eq__(self, other) -> bool:
+            return isinstance(other, AST.Assignment) and self.lhs == other.lhs and self.rhs == other.rhs
 
     class UnaryOperation(Exp):
         def __init__(self, unary_operator, exp) -> None:
@@ -206,6 +269,5 @@ class AST:
 
         def __eq__(self, other) -> bool:
             return isinstance(other, AST.GreaterOrEqual)
-
 
 # type: ignore
